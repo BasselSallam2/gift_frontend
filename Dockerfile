@@ -4,12 +4,13 @@
 # Run:
 #   docker run -p 8080:80 \
 #     -e GIFTS_API_BASE=/api \
-#     -e GIFTS_BACKEND_ORIGIN=http://host.docker.internal:3000 \
+#     -e GIFTS_BACKEND_ORIGIN=http://host.docker.internal:3005 \
 #     gifts-frontend
 #
-# - GIFTS_API_BASE: Browser API base URL (script config). Default: /api (same-origin).
-# - GIFTS_BACKEND_ORIGIN: Where nginx proxies /api (Express). Default: http://backend:3000
-#   (Docker Compose service name). Override if your Node service hostname differs.
+# - GIFTS_API_BASE: Browser API base (script config). Default: /api (same-origin).
+# - GIFTS_BACKEND_ORIGIN: Upstream origin for nginx (no path). Default: http://backend:3005
+# - NGINX_RESOLVER: Resolver for variable proxy_pass. Default: 127.0.0.11 (Compose embedded DNS).
+#   Backend must listen on 0.0.0.0:3000; use docker-compose.yml from repo root for wiring.
 
 FROM nginx:1.27-alpine
 

@@ -6,8 +6,8 @@ server {
 
     client_max_body_size 20m;
 
-    # Docker Compose / bridge network — deferred DNS for proxy_pass $var
-    resolver 127.0.0.11 valid=30s ipv6=off;
+    # Compose default 127.0.0.11; Kubernetes/host networks: set NGINX_RESOLVER (e.g. 10.152.152.10)
+    resolver ${NGINX_RESOLVER} valid=30s ipv6=off;
 
     gzip on;
     gzip_types text/css application/javascript application/json;
