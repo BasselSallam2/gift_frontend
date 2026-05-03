@@ -2,19 +2,19 @@
 #
 # Build: docker build -t gifts-frontend ./frontend
 #
-# ── Docker Compose / one private network (same as repo docker-compose.yml): ──
+# API URL (js/config.js):
+# • Coolify omit GIFTS_API_BASE → image uses the frontend/js/config.js committed in Git (your full backend URL).
+# • Docker Compose typically sets GIFTS_API_BASE=/api to regenerate config for same-origin + proxy.
+#
+# ── Docker Compose / same network (repo docker-compose.yml): ──
 #   GIFTS_API_BASE=/api
-#   GIFTS_BACKEND_ORIGIN=http://backend:3005   # service name + container PORT
-# Resolver is auto-detected from /etc/resolv.conf (works on Coolify, not only 127.0.0.11).
+#   GIFTS_BACKEND_ORIGIN=http://backend:3005   # Express container + port (3005)
 #
-# ── Coolify: separate public apps (frontend URL ≠ backend URL): ──
-#   GIFTS_API_PROXY_ENABLED=false
-#   GIFTS_API_BASE=https://YOUR-BACKEND-PUBLIC-URL/api
-# (Browser calls the backend directly; nginx does not proxy.)
+# ── Split Coolify apps (different public hostnames): ──
+#   GIFTS_API_PROXY_ENABLED=false — browser calls baked-in API_BASE (no nginx /api proxy)
+#   or set GIFTS_API_BASE=http://YOUR-API.sslip.io/api to override config at startup.
 #
-# ── Coolify: unified project, internal DNS: ──
-#   Set GIFTS_BACKEND_ORIGIN to the internal URL Coolify shows for the API container
-#   (often http://SERVICE_NAME:3005), not necessarily "backend".
+# ── Resolver is auto-detected from /etc/resolv.conf ──
 
 FROM nginx:1.27-alpine
 
@@ -30,7 +30,5 @@ WORKDIR /usr/share/nginx/html
 COPY index.html .
 COPY css ./css/
 COPY js ./js/
-
-RUN rm -f ./js/config.js
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

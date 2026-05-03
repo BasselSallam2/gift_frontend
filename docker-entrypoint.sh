@@ -1,13 +1,20 @@
 #!/bin/sh
 set -e
 
-export GIFTS_API_BASE="${GIFTS_API_BASE:-/api}"
 
-# Upstream Express (scheme + host + port, NO path suffix). Compose default hostname "backend".
+# -----------------------------------------------------------------------------
+# js/config.js: regenerate only when GIFTS_API_BASE is explicitly set (non-empty).
+# If unset → use baked-in frontend/js/config.js from the image (Coolify separate API URL).
+# Docker Compose passes GIFTS_API_BASE=/api → same-origin requests + nginx proxy works.
+# -----------------------------------------------------------------------------
 GIFTS_BACKEND_ORIGIN=$(printf '%s' "${GIFTS_BACKEND_ORIGIN:-http://backend:3005}" | sed 's#/\+$##')
 export GIFTS_BACKEND_ORIGIN
 
-envsubst '${GIFTS_API_BASE}' < /usr/share/nginx/html/js/config.template.env.js > /usr/share/nginx/html/js/config.js
+if [ "${GIFTS_API_BASE:+n}" ]; then
+    GIFTS_API_BASE="${GIFTS_API_BASE:-/api}"
+    export GIFTS_API_BASE
+    envsubst '${GIFTS_API_BASE}' < /usr/share/nginx/html/js/config.template.env.js >/usr/share/nginx/html/js/config.js
+fi
 rm -f /usr/share/nginx/html/js/config.template.env.js
 
 # -----------------------------------------------------------------------------
@@ -49,10 +56,12 @@ DISABLE_PROXY=""
 case "$PROXY_LOWER" in 0|false|no|off) DISABLE_PROXY=1 ;; esac
 
 if [ -n "$DISABLE_PROXY" ]; then
-    case "${GIFTS_API_BASE}" in
+    CONFIG_JS="/usr/share/nginx/html/js/config.js"
+    eff=$(sed -n 's/.*API_BASE:[[:space:]]*"\([^"]*\)".*/\1/p' "$CONFIG_JS" | head -n 1)
+    case "$eff" in
         http://* | https://*) ;;
         *)
-            printf '%s\n' "gifts-frontend: GIFTS_API_PROXY_ENABLED is off — GIFTS_API_BASE must be an absolute backend URL (e.g. https://YOUR-API-HOST/api), not '${GIFTS_API_BASE}'." >&2
+            printf '%s\n' "gifts-frontend: GIFTS_API_PROXY_ENABLED is off — API_BASE in ${CONFIG_JS} must be absolute (http/https), got '${eff}'. Set frontend/js/config.js or pass GIFTS_API_BASE." >&2
             exit 1
             ;;
     esac

@@ -1,0 +1,26 @@
+# Python static server — for Coolify when you prefer not to use nginx.
+#
+# Coolify setup:
+#   • Build pack: Dockerfile
+#   • Dockerfile location: frontend/Dockerfile.python
+#   • Build context: repository ROOT ( "." ) — NOT the frontend/ folder alone
+#   • Public port / internal port: set to the same value you use below (default 3007),
+#     or leave Coolify to inject PORT — this image honors the PORT env variable.
+#
+# Environment (optional): PORT (Coolify injects automatically)
+#
+# Plain HTTP SPA; put your API URL (http://...) in frontend/js/config.js before build,
+# or mount / replace config after deploy.
+
+FROM python:3.12-alpine
+
+WORKDIR /app
+
+COPY scripts/serve_frontend.py /app/serve_frontend.py
+COPY frontend/ /app/www/
+
+ENV PORT=3007
+EXPOSE 3007
+
+# Coolify overrides PORT — keep shell entrypoint so $PORT expands at runtime.
+ENTRYPOINT ["/bin/sh", "-c", "exec python3 /app/serve_frontend.py --host 0.0.0.0 --port \"${PORT:-3007}\" --root /app/www"]
