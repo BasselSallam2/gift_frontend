@@ -83,6 +83,8 @@
     if (typeof url === "object" && url && typeof url.key === "string") return imageDisplayUrl(url.key);
     const s = String(url).trim();
     if (!s) return "";
+    // Local preview URLs (must not hit /upload/stream/)
+    if (/^blob:/i.test(s) || /^data:/i.test(s)) return s;
     if (/^https?:\/\//i.test(s)) return s;
     return api.streamUrlFromStorageKey(s);
   }
@@ -90,11 +92,16 @@
   /** Prefer `<img src>`; if blocked, retry via fetch + blob (Helmet/CORP dev quirks). */
   function bindSmartImage(img, url) {
     const src = imageDisplayUrl(url);
-    img.crossOrigin = "anonymous";
+    if (/^blob:/i.test(src) || /^data:/i.test(src)) {
+      img.removeAttribute("crossorigin");
+    } else {
+      img.crossOrigin = "anonymous";
+    }
     img.referrerPolicy = "no-referrer";
     let blobTried = false;
     img.onerror = function () {
       if (blobTried || !src) return;
+      if (/^(blob:|data:)/i.test(src)) return;
       blobTried = true;
       fetch(src, { credentials: "omit", mode: "cors" })
         .then(function (r) {

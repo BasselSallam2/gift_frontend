@@ -109,7 +109,9 @@
 
   function streamUrlFromStorageKey(key) {
     if (!key) return "";
-    const k = String(key).replace(/^uploads\//, "");
+    const s = String(key).trim();
+    if (/^blob:/i.test(s) || /^data:/i.test(s) || /^https?:\/\//i.test(s)) return s;
+    const k = s.replace(/^uploads\//, "");
     return C.API_BASE + "/upload/stream/" + encodeURIComponent(k);
   }
 

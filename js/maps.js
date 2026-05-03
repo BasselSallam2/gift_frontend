@@ -15,6 +15,7 @@
     if (typeof key === "object" && key && typeof key.key === "string") return placeImageUrl(key.key);
     const s = String(key).trim();
     if (!s) return "";
+    if (/^blob:/i.test(s) || /^data:/i.test(s)) return s;
     if (/^https?:\/\//i.test(s)) return s;
     const api = global.GiftsApi;
     if (api && typeof api.streamUrlFromStorageKey === "function") return api.streamUrlFromStorageKey(s);
