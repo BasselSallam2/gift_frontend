@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Emyy - My Love</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/app.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "var(--color-primary, #805062)",
+            secondary: "var(--color-secondary, #715478)",
+            background: "var(--color-background, #fff8f8)",
+            surface: "var(--color-surface, #ffffff)",
+            "on-surface": "var(--color-text, #1f1a1c)",
+            "on-surface-variant": "var(--color-text-muted, #504447)",
+            accent: "var(--color-accent, #805062)",
+            unread: "var(--color-unread, #ba1a1a)",
+            "primary-container": "color-mix(in srgb, var(--color-primary) 22%, white)",
+          },
+          spacing: { "max-width": "430px", gutter: "16px", md: "20px" },
+          fontFamily: {
+            display: ["Plus Jakarta Sans", "sans-serif"],
+            "headline-md": ["Plus Jakarta Sans", "sans-serif"],
+            "body-md": ["Be Vietnam Pro", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="antialiased text-[var(--color-text)] bg-[var(--color-background)] flex flex-col items-center min-h-screen">
+  <!-- Gate: no session -->
+  <div id="gate" class="w-full max-w-[430px] min-h-screen flex flex-col items-center justify-center px-6 py-10 text-center" hidden>
+    <div class="rounded-[24px] bg-surface p-8 shadow-lg max-w-sm w-full border border-black/5">
+      <span class="material-symbols-outlined text-5xl text-primary mb-4 block" style="font-variation-settings: 'FILL' 1;">favorite</span>
+      <h1 class="font-display text-2xl font-bold mb-2">My Love</h1>
+      <p id="gate-message" class="text-sm text-on-surface-variant mb-6">Open this app using your private link with <code class="text-xs bg-black/5 px-1 rounded">?token=</code> in the URL.</p>
+      <p class="text-xs text-on-surface-variant">This space is only for you two.</p>
+    </div>
+  </div>
+
+  <div id="app-root" class="w-full max-w-[430px] min-h-screen relative device-shell pb-4" hidden>
+    <!-- Top bar -->
+    <header class="sticky top-0 z-20 flex items-center justify-between px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-b border-black/5 shadow-sm">
+      <div class="flex items-center gap-3 min-w-0">
+        <div id="partner-avatar" class="w-10 h-10 rounded-full shrink-0 bg-primary-container flex items-center justify-center text-lg border-2 border-primary/20" aria-hidden="true">💕</div>
+        <div class="flex flex-col min-w-0">
+          <span id="header-partner-label" class="text-xs text-on-surface-variant font-medium truncate">Partner</span>
+          <span id="partner-mood-preview" class="text-lg truncate">—</span>
+        </div>
+      </div>
+      <h1 class="font-display font-bold text-lg text-primary shrink-0">My Love</h1>
+      <div class="w-10" aria-hidden="true"></div>
+    </header>
+
+    <!-- Home -->
+    <main id="view-home" class="tab-panel px-md pt-6 pb-4 flex flex-col gap-6 mb-4">
+      <section class="rounded-[20px] bg-surface p-5 shadow-md border border-black/5">
+        <h2 id="home-title-display" class="font-display text-xl font-bold text-on-surface mb-1"></h2>
+        <p id="home-message-display" class="text-sm text-on-surface-variant"></p>
+      </section>
+
+      <section class="relative w-full">
+        <div class="photo-deck" id="photo-deck" aria-label="Photo memories stack">
+          <div id="deck-empty" class="absolute inset-0 flex items-center justify-center rounded-[24px] bg-white/70 border border-dashed border-on-surface-variant/30 text-center text-sm text-on-surface-variant p-4">
+            Add photos from Settings — stack &amp; swipe the top card to see more.
+          </div>
+        </div>
+      </section>
+
+      <section id="anniversary-section" class="rounded-[20px] p-6 mb-6 bg-surface shadow-md border border-black/5 relative overflow-hidden">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">celebration</span>
+          <h2 id="anniversary-section-heading" class="font-headline-md text-lg">Our milestones</h2>
+        </div>
+        <p id="anniversary-empty-hint" class="text-sm text-on-surface-variant mb-2" hidden>No anniversaries yet — add important dates in Settings (each gets a yearly countdown).</p>
+        <div id="anniversary-list" class="grid grid-cols-2 gap-3"></div>
+      </section>
+    </main>
+
+    <!-- Love note (envelope — no chat thread) -->
+    <main id="view-love" class="tab-panel px-md pt-6 flex flex-col gap-6 pb-8" hidden>
+      <div class="flex flex-col items-center gap-4">
+        <p class="text-sm text-on-surface-variant text-center max-w-xs">Today’s note from your partner — tap the envelope to open.</p>
+        <div class="relative w-full max-w-[280px]">
+          <div id="love-closed-wrap">
+            <button type="button" id="love-envelope-btn" class="love-envelope-btn relative w-full flex justify-center py-5 rounded-2xl active:scale-[0.98] transition" aria-label="Open today’s love note">
+              <span class="material-symbols-outlined text-6xl text-primary drop-shadow-sm" style="font-variation-settings: 'FILL' 1;">favorite</span>
+              <span id="love-unread-flag" class="hidden absolute top-3 right-5 flex h-4 w-4 rounded-full bg-[var(--color-unread)] ring-2 ring-white shadow" title="Unread" aria-hidden="true"></span>
+            </button>
+          </div>
+          <div id="love-open-wrap" class="hidden w-full text-center px-2 mt-2">
+            <div id="love-paper" class="love-paper text-left text-sm text-on-surface p-5 max-h-[min(50vh,320px)] overflow-y-auto whitespace-pre-wrap min-h-[120px]"></div>
+            <button type="button" id="love-close-paper" class="mt-4 text-sm font-semibold text-primary">Close envelope</button>
+          </div>
+        </div>
+      </div>
+      <div id="love-compose" class="rounded-[20px] border border-black/10 bg-surface p-4 shadow-sm">
+        <label class="text-xs font-semibold text-on-surface-variant" for="input-daily-body">Send today’s note</label>
+        <textarea id="input-daily-body" rows="3" class="mt-2 w-full rounded-2xl border border-black/10 px-3 py-2 text-sm" placeholder="Something sweet…"></textarea>
+        <button type="button" id="btn-send-daily" class="btn-tactile mt-3 w-full rounded-full bg-primary text-white py-2.5 text-sm font-semibold">Send</button>
+        <p id="daily-compose-hint" class="text-xs text-on-surface-variant mt-2"></p>
+      </div>
+    </main>
+
+    <!-- Mood -->
+    <main id="view-mood" class="tab-panel px-md pt-6 flex flex-col gap-6 pb-8" hidden>
+      <div id="mood-latest" class="rounded-[20px] bg-surface p-4 shadow border border-black/5 mb-2"></div>
+      <button type="button" id="btn-mood-history" class="hidden w-full text-sm font-semibold text-primary py-2 rounded-xl border border-primary/25">Mood history</button>
+      <section class="mood-compose-section flex flex-col items-center w-full gap-3">
+        <button type="button" id="btn-mood-open-compose" class="btn-tactile w-full max-w-xs rounded-full bg-secondary text-white py-3 text-sm font-semibold shadow-md">Share mood</button>
+        <div id="mood-compose-fields" class="hidden w-full flex flex-col items-center gap-3">
+          <p class="text-sm font-semibold w-full text-center">Your emoji</p>
+          <div class="flex justify-center w-full">
+            <input id="input-mood-emoji" type="text" inputmode="text" autocomplete="off" maxlength="8" class="mood-emoji-input rounded-2xl border border-black/10 bg-surface text-center shrink-0" placeholder="·" aria-label="One emoji"/>
+          </div>
+          <input id="input-mood-note" type="text" class="w-full max-w-md rounded-full border px-4 py-2 text-sm" placeholder="Optional note"/>
+          <div class="flex w-full max-w-md gap-2">
+            <button type="button" id="btn-mood-compose-cancel" class="btn-tactile flex-1 rounded-full border-2 border-black/15 py-2.5 text-sm font-semibold">Cancel</button>
+            <button type="button" id="btn-share-mood" class="btn-tactile flex-1 rounded-full bg-secondary text-white py-2.5 text-sm font-semibold">Send</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Dreams -->
+    <main id="view-dreams" class="tab-panel dreams-view px-md pt-6 flex flex-col gap-6 pb-8 relative" hidden>
+      <div class="dreams-galaxy-bg" aria-hidden="true"></div>
+      <section class="dreams-galaxy-content relative z-[1]">
+        <h2 class="font-display font-bold text-lg mb-3 flex items-center gap-2 text-on-surface drop-shadow-sm">
+          <span class="material-symbols-outlined text-primary">nightlight</span> Dreams
+        </h2>
+        <div id="dream-list" class="space-y-2"></div>
+        <div class="mt-3 flex gap-2">
+          <input id="input-dream-title" type="text" class="flex-1 rounded-full border px-4 py-2 text-sm bg-surface/90 backdrop-blur-sm border-black/10" placeholder="New dream"/>
+          <button type="button" id="btn-add-dream" class="btn-tactile rounded-full bg-primary text-white px-4 text-sm font-semibold shrink-0">Add</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Dream completion (after checking done) -->
+    <div id="dream-complete-sheet" class="place-add-sheet" hidden role="dialog" aria-modal="true" aria-label="Celebrate this dream">
+      <div class="place-add-sheet__backdrop" id="dream-complete-backdrop"></div>
+      <div class="place-add-sheet__panel rounded-t-[24px] bg-surface border-t border-black/10 shadow-[0_-8px_40px_rgba(0,0,0,0.12)] p-5 pb-[calc(1.25rem+var(--safe-bottom))] max-w-[430px] mx-auto w-full">
+        <div class="mx-auto h-1 w-10 rounded-full bg-black/15 mb-4" aria-hidden="true"></div>
+        <h3 class="font-display font-bold text-base mb-1">You did it</h3>
+        <p id="dream-complete-title" class="text-sm text-on-surface-variant mb-3"></p>
+        <label class="text-xs text-on-surface-variant" for="dream-complete-date">When did you complete it?</label>
+        <input id="dream-complete-date" type="date" class="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm"/>
+        <label class="text-xs text-on-surface-variant mt-3 block" for="dream-complete-photo">Optional celebration photo</label>
+        <input type="file" id="dream-complete-photo" accept="image/*" class="text-xs w-full mt-1"/>
+        <div class="flex gap-2 pt-4">
+          <button type="button" id="dream-complete-cancel" class="flex-1 rounded-full border-2 border-black/15 py-2.5 text-sm font-semibold">Cancel</button>
+          <button type="button" id="dream-complete-save" class="flex-1 rounded-full bg-primary text-white py-2.5 text-sm font-semibold">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Places -->
+    <main id="view-places" class="tab-panel px-md pt-6 flex flex-col gap-6 pb-8" hidden>
+      <section>
+        <h2 class="font-display font-bold text-lg mb-3 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">location_on</span> Places
+        </h2>
+        <div class="relative mb-2">
+          <div class="flex gap-2">
+            <div class="flex-1 relative min-w-0">
+              <input id="input-place-search" type="text" autocomplete="off" class="w-full rounded-full border border-black/10 px-4 py-2 text-sm bg-background" placeholder="Search a place…"/>
+              <div id="place-search-suggestions" class="place-search-suggestions hidden absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-xl border border-black/10 bg-surface shadow-lg z-30 text-sm"></div>
+            </div>
+            <button type="button" id="btn-place-search" class="rounded-full bg-primary text-white px-4 text-sm font-semibold shrink-0">Go</button>
+            <button type="button" id="btn-place-my-location" class="rounded-full bg-blue-600 text-white px-3 text-sm font-semibold shrink-0 flex items-center justify-center" title="My location" aria-label="Center map on my location">
+              <span class="material-symbols-outlined text-xl">my_location</span>
+            </button>
+          </div>
+        </div>
+        <div id="place-map" class="h-64 w-full rounded-xl overflow-hidden border border-black/10 z-0"></div>
+        <div id="place-list" class="space-y-2 mt-3"></div>
+      </section>
+    </main>
+
+    <!-- Wins (achievements) -->
+    <main id="view-wins" class="tab-panel px-md pt-6 flex flex-col gap-6 pb-8" hidden>
+      <section>
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 class="font-display font-bold text-lg flex items-center gap-2 min-w-0">
+            <span class="material-symbols-outlined text-primary shrink-0">trophy</span> <span class="truncate">Wins</span>
+          </h2>
+          <button type="button" id="btn-toggle-wins-form" class="shrink-0 flex items-center gap-1 rounded-full bg-primary/15 text-primary px-3 py-1.5 text-xs font-semibold border border-primary/25" title="Add a win">
+            <span class="material-symbols-outlined text-lg">add</span> Add
+          </button>
+        </div>
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <p class="text-xs text-on-surface-variant">Your story together</p>
+        </div>
+        <div id="achievement-list" class="wins-timeline"></div>
+        <div id="wins-add-panel" class="mt-4 space-y-2 hidden rounded-2xl border border-black/10 bg-surface/80 p-4 shadow-sm">
+          <p class="text-xs font-semibold text-on-surface-variant">New win</p>
+          <input id="input-ach-title" type="text" class="w-full rounded-full border px-4 py-2 text-sm" placeholder="Title"/>
+          <input id="input-ach-date" type="date" class="w-full rounded-full border px-4 py-2 text-sm"/>
+          <input type="file" id="input-ach-photo" accept="image/*" class="text-xs"/>
+          <button type="button" id="btn-add-achievement" class="btn-tactile w-full rounded-full bg-primary text-white py-2 text-sm font-semibold">Save win</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Pin (one-shot share) -->
+    <main id="view-pin" class="tab-panel px-md pt-6 flex flex-col gap-6 pb-8" hidden>
+      <div class="pin-reaching-illustration rounded-2xl bg-gradient-to-b from-secondary/10 to-primary/5 border border-black/5 overflow-hidden" aria-hidden="true">
+        <svg class="pin-reaching-svg" viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg">
+          <path class="pin-reaching-path" d="M 70 75 Q 160 35 250 75" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="6 6" opacity="0.35"/>
+          <g class="pin-reaching-figure pin-reaching-figure--left">
+            <circle cx="58" cy="68" r="14" fill="var(--color-primary)" opacity="0.85"/>
+            <path d="M 58 82 L 58 102 M 48 92 L 68 92" stroke="var(--color-primary)" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+          </g>
+          <g class="pin-reaching-figure pin-reaching-figure--right">
+            <circle cx="262" cy="68" r="14" fill="var(--color-secondary)" opacity="0.85"/>
+            <path d="M 262 82 L 262 102 M 252 92 L 272 92" stroke="var(--color-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+          </g>
+        </svg>
+        <p class="text-center text-[10px] text-on-surface-variant px-2 pb-2">A little closer every time you share</p>
+      </div>
+      <section class="rounded-[20px] bg-surface p-5 shadow border border-black/5">
+        <h2 class="font-display font-bold text-lg mb-2 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">push_pin</span> Share pin
+        </h2>
+        <p class="text-sm text-on-surface-variant mb-4">Send where you are once. This isn’t live tracking — your partner only sees your last shared point.</p>
+        <p id="pin-geo-hint" class="text-xs text-on-surface-variant mb-3 hidden"></p>
+        <button type="button" id="btn-share-location" class="btn-tactile w-full rounded-full bg-secondary text-white py-2.5 text-sm font-semibold">Share my location once</button>
+        <p id="location-status" class="text-sm text-on-surface-variant mt-3">Not shared yet.</p>
+      </section>
+      <section id="pin-distance-card" class="rounded-[20px] bg-gradient-to-br from-primary/12 to-secondary/10 p-4 shadow border border-primary/20 hidden">
+        <p class="text-xs font-semibold text-primary mb-1">Distance between you</p>
+        <p id="pin-distance-text" class="text-lg font-display font-bold text-on-surface tabular-nums">—</p>
+        <p class="text-[11px] text-on-surface-variant mt-1">Based on last shared pins</p>
+      </section>
+      <section class="rounded-[20px] bg-surface p-5 shadow border border-black/5">
+        <h3 class="font-headline-md text-base mb-2">Partner’s last pin</h3>
+        <p id="pin-partner-meta" class="text-sm text-on-surface-variant mb-3">—</p>
+        <a id="btn-open-partner-maps" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex w-full justify-center rounded-full bg-primary text-white py-2.5 text-sm font-semibold hidden">Open in Google Maps</a>
+      </section>
+    </main>
+
+    <!-- Settings -->
+    <main id="view-settings" class="tab-panel px-md pt-6 flex flex-col gap-6 pb-8" hidden>
+      <section class="rounded-[20px] bg-surface p-5 shadow border border-black/5">
+        <h2 class="font-headline-md mb-3">Our space</h2>
+        <p class="text-xs text-on-surface-variant mb-3">Title and message shown on Home.</p>
+        <div id="home-copy-editor" class="space-y-2">
+          <input id="input-home-title" type="text" class="w-full rounded-full border border-black/10 px-4 py-2 text-sm bg-background" placeholder="Title"/>
+          <textarea id="input-home-message" rows="2" class="w-full rounded-2xl border border-black/10 px-4 py-2 text-sm bg-background" placeholder="Message"></textarea>
+          <label class="text-xs text-on-surface-variant font-medium" for="input-home-anniversary-heading">Anniversary section title (Home tab)</label>
+          <input id="input-home-anniversary-heading" type="text" class="w-full rounded-full border border-black/10 px-4 py-2 text-sm bg-background" placeholder="e.g. Our milestones"/>
+          <button type="button" id="btn-save-home-copy" class="btn-tactile w-full rounded-full bg-primary text-white py-2.5 text-sm font-semibold">Save home copy</button>
+        </div>
+      </section>
+      <section class="rounded-[20px] bg-surface p-5 shadow border border-black/5">
+        <h2 class="font-headline-md mb-3">Photo stack</h2>
+        <p class="text-xs text-on-surface-variant mb-3">Add memories to swipe on Home.</p>
+        <input type="file" id="input-gallery-file" accept="image/*" class="hidden"/>
+        <button type="button" id="btn-add-gallery" class="btn-tactile w-full rounded-full border-2 border-primary/30 py-3 text-sm font-semibold text-primary flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-xl">add_photo_alternate</span>
+          Add to stack
+        </button>
+      </section>
+      <section class="rounded-[20px] bg-surface p-5 shadow border border-black/5">
+        <h2 class="font-headline-md mb-3">Milestones</h2>
+        <p class="text-xs text-on-surface-variant mb-3">Anniversaries and special dates shown on Home.</p>
+        <button type="button" id="btn-add-anniversary" class="text-sm font-semibold text-primary">Add anniversary</button>
+        <div id="anniversary-editor" class="mt-3 space-y-2 hidden">
+          <input id="input-anniversary-title" type="text" class="w-full rounded-full border border-black/10 px-4 py-2 text-sm bg-background" placeholder="Title"/>
+          <input id="input-anniversary-date" type="date" class="w-full rounded-full border border-black/10 px-4 py-2 text-sm bg-background"/>
+          <label class="text-xs text-on-surface-variant" for="input-anniversary-photo">Optional photo</label>
+          <input type="file" id="input-anniversary-photo" accept="image/*" class="text-xs w-full"/>
+          <button type="button" id="btn-save-anniversary" class="btn-tactile w-full rounded-full bg-primary text-white py-2 text-sm font-semibold">Save anniversary</button>
+        </div>
+      </section>
+      <section class="rounded-[20px] bg-surface p-5 shadow border border-black/5">
+        <h2 class="font-headline-md mb-3">Your name</h2>
+        <input id="input-settings-name" type="text" class="w-full rounded-full border px-4 py-2 text-sm"/>
+        <button type="button" id="btn-save-name" class="btn-tactile mt-3 w-full rounded-full bg-primary text-white py-2.5 text-sm font-semibold">Save name</button>
+      </section>
+      <section class="rounded-[20px] bg-surface p-5 shadow border border-black/5">
+        <h2 class="font-headline-md mb-3">Theme colors</h2>
+        <div id="theme-fields" class="grid grid-cols-2 gap-3 text-xs"></div>
+        <button type="button" id="btn-save-theme" class="btn-tactile mt-4 w-full rounded-full bg-primary text-white py-2.5 text-sm font-semibold">Save theme</button>
+      </section>
+    </main>
+
+    <!-- Bottom sheet: add place (after map tap) -->
+    <div id="place-add-sheet" class="place-add-sheet" hidden role="dialog" aria-modal="true" aria-label="Save place">
+      <div class="place-add-sheet__backdrop" id="place-add-sheet-backdrop"></div>
+      <div class="place-add-sheet__panel rounded-t-[24px] bg-surface border-t border-black/10 shadow-[0_-8px_40px_rgba(0,0,0,0.12)] p-5 pb-[calc(1.25rem+var(--safe-bottom))] max-w-[430px] mx-auto w-full">
+        <div class="mx-auto h-1 w-10 rounded-full bg-black/15 mb-4" aria-hidden="true"></div>
+        <h3 class="font-display font-bold text-base mb-3">Save this pin</h3>
+        <div class="space-y-3">
+          <input id="input-place-sheet-name" type="text" class="w-full rounded-xl border border-black/10 px-3 py-2 text-sm" placeholder="Place name"/>
+          <input id="input-place-sheet-date" type="date" class="w-full rounded-xl border border-black/10 px-3 py-2 text-sm"/>
+          <label class="text-xs text-on-surface-variant" for="input-place-sheet-photo">Optional photo</label>
+          <input type="file" id="input-place-sheet-photo" accept="image/*" class="text-xs w-full"/>
+          <div class="flex gap-2 pt-2">
+            <button type="button" id="btn-place-sheet-cancel" class="flex-1 rounded-full border-2 border-black/15 py-2.5 text-sm font-semibold">Cancel</button>
+            <button type="button" id="btn-place-sheet-save" class="flex-1 rounded-full bg-primary text-white py-2.5 text-sm font-semibold">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav id="bottom-nav" class="bottom-nav-scroll fixed bottom-0 w-full max-w-[430px] left-1/2 -translate-x-1/2 rounded-t-[32px] border-t border-black/10 bg-[var(--color-surface)]/95 backdrop-blur-md z-50 shadow-[0_-8px_30px_rgba(0,0,0,0.06)]" role="tablist">
+      <div class="flex flex-nowrap gap-1 px-2 pt-3 pb-0 items-stretch min-w-0">
+        <button type="button" data-tab="home" role="tab" class="is-active bottom-nav-tab flex shrink-0 flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition" aria-selected="true">
+          <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">home</span>
+          <span class="text-[10px] font-semibold leading-tight">Home</span>
+        </button>
+        <button type="button" data-tab="love" role="tab" class="bottom-nav-tab relative flex shrink-0 flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition">
+          <span id="nav-love-unread" class="hidden absolute top-0.5 right-1 h-2 w-2 rounded-full bg-[var(--color-unread)] ring-2 ring-[var(--color-surface)] z-10" aria-hidden="true"></span>
+          <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+          <span class="text-[10px] font-semibold leading-tight">Love</span>
+        </button>
+        <button type="button" data-tab="mood" role="tab" class="bottom-nav-tab flex shrink-0 flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition">
+          <span class="material-symbols-outlined text-[22px]">mood</span>
+          <span class="text-[10px] font-semibold leading-tight">Mood</span>
+        </button>
+        <button type="button" data-tab="dreams" role="tab" class="bottom-nav-tab flex shrink-0 flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition">
+          <span class="material-symbols-outlined text-[22px]">nightlight</span>
+          <span class="text-[10px] font-semibold leading-tight">Dreams</span>
+        </button>
+        <button type="button" data-tab="places" role="tab" class="bottom-nav-tab flex shrink-0 flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition">
+          <span class="material-symbols-outlined text-[22px]">location_on</span>
+          <span class="text-[10px] font-semibold leading-tight">Places</span>
+        </button>
+        <button type="button" data-tab="wins" role="tab" class="bottom-nav-tab flex shrink-0 flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition">
+          <span class="material-symbols-outlined text-[22px]">trophy</span>
+          <span class="text-[10px] font-semibold leading-tight">Wins</span>
+        </button>
+        <button type="button" data-tab="pin" role="tab" class="bottom-nav-tab flex shrink-0 flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition">
+          <span class="material-symbols-outlined text-[22px]">push_pin</span>
+          <span class="text-[10px] font-semibold leading-tight">Pin</span>
+        </button>
+        <button type="button" data-tab="settings" role="tab" class="bottom-nav-tab flex shrink-0 flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition">
+          <span class="material-symbols-outlined text-[22px]">settings_heart</span>
+          <span class="text-[10px] font-semibold leading-tight">Settings</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+    <div id="mood-history-sheet" class="place-add-sheet" hidden role="dialog" aria-modal="true" aria-label="Mood history">
+      <div class="place-add-sheet__backdrop" id="mood-history-sheet-backdrop"></div>
+      <div class="place-add-sheet__panel rounded-t-[24px] bg-surface border-t border-black/10 shadow-[0_-8px_40px_rgba(0,0,0,0.12)] p-5 pb-[calc(1.25rem+var(--safe-bottom))] max-w-[430px] mx-auto w-full">
+        <div class="mx-auto h-1 w-10 rounded-full bg-black/15 mb-4" aria-hidden="true"></div>
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <h3 class="font-display font-bold text-base">Mood history</h3>
+          <button type="button" id="mood-history-sheet-close" class="text-sm font-semibold text-primary shrink-0">Done</button>
+        </div>
+        <label class="text-xs text-on-surface-variant block mb-1" for="mood-history-filter-date">Filter by day</label>
+        <div class="flex gap-2 items-center flex-wrap mb-3">
+          <input id="mood-history-filter-date" type="date" class="flex-1 min-w-[10rem] rounded-xl border border-black/10 px-3 py-2 text-sm"/>
+          <button type="button" id="mood-history-filter-clear" class="rounded-full border border-black/15 px-3 py-2 text-xs font-semibold">Clear</button>
+        </div>
+        <div id="mood-history-sheet-list" class="max-h-[min(50vh,320px)] overflow-y-auto space-y-0 border-t border-black/10 pt-2"></div>
+      </div>
+    </div>
+
+    <div id="image-lightbox" class="image-lightbox" hidden role="dialog" aria-modal="true" aria-label="Photo">
+      <button type="button" id="image-lightbox-close" class="image-lightbox__close" aria-label="Close">×</button>
+      <div class="image-lightbox__inner">
+        <img id="image-lightbox-img" class="image-lightbox__img" alt=""/>
+      </div>
+    </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/api.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+  <script src="js/router.js"></script>
+  <script src="js/maps.js"></script>
+  <script src="js/places.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

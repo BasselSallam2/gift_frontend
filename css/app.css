@@ -1,0 +1,548 @@
+:root {
+  --color-primary: #805062;
+  --color-secondary: #715478;
+  --color-background: #fff8f8;
+  --color-surface: #ffffff;
+  --color-text: #1f1a1c;
+  --color-text-muted: #504447;
+  --color-accent: #805062;
+  --color-unread: #ba1a1a;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  font-family: "Be Vietnam Pro", system-ui, sans-serif;
+  min-height: 100dvh;
+  margin: 0;
+}
+
+.device-shell {
+  padding-top: var(--safe-top);
+  padding-bottom: calc(6.25rem + var(--safe-bottom));
+}
+
+/**
+ * Tailwind utilities like `flex` can override the UA `hidden` attribute.
+ * Force these shells off when marked hidden so gate vs app-root stay exclusive.
+ */
+#gate[hidden],
+#app-root[hidden] {
+  display: none !important;
+}
+
+.tab-panel[hidden] {
+  display: none !important;
+}
+
+#place-map .leaflet-container {
+  height: 100%;
+  width: 100%;
+  font: inherit;
+}
+
+#bottom-nav {
+  padding-bottom: calc(0.75rem + var(--safe-bottom));
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+#bottom-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.love-paper {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  background: linear-gradient(180deg, #fffefb 0%, #faf6f0 100%);
+  border-radius: 0.75rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+#home-message-display {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.leaflet-container.map-picking {
+  cursor: crosshair;
+}
+
+.place-add-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.place-add-sheet:not([hidden]) {
+  pointer-events: auto;
+}
+
+.place-add-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.place-add-sheet__panel {
+  position: relative;
+  z-index: 1;
+}
+
+.photo-deck {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-width: 20rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.photo-deck .deck-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(128, 80, 98, 0.12);
+  border: 4px solid var(--color-surface);
+  transition: opacity 0.2s ease;
+  background: var(--color-surface);
+}
+
+.photo-deck .deck-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.photo-deck .deck-card.is-top {
+  z-index: 10;
+  cursor: grab;
+  touch-action: none;
+  will-change: transform;
+  transition: none;
+}
+
+.photo-deck .deck-card.is-top.deck-card--spring {
+  transition: transform 0.22s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+.photo-deck .deck-card.is-top:active {
+  cursor: grabbing;
+}
+
+.photo-deck .deck-card.deck-card--peel-active {
+  pointer-events: none;
+}
+
+.deck-card.is-back-1 {
+  z-index: 2;
+  transform: rotate(-4deg) scale(0.92) translateY(1rem);
+  opacity: 0.85;
+}
+
+.deck-card.is-back-2 {
+  z-index: 1;
+  transform: rotate(2deg) scale(0.96) translateY(0.5rem);
+  opacity: 0.75;
+}
+
+/* Tailwind `flex` on #deck-empty overrides `[hidden]` — keep empty layer off when hidden */
+#deck-empty[hidden] {
+  display: none !important;
+}
+
+#deck-empty:not([hidden]) {
+  pointer-events: none;
+}
+
+.toast {
+  position: fixed;
+  bottom: 6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(90%, 24rem);
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 0.875rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.toast.visible {
+  opacity: 1;
+}
+
+#bottom-nav [data-tab].is-active {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+#bottom-nav [data-tab]:not(.is-active) {
+  color: var(--color-text-muted);
+}
+
+.love-envelope-btn {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  box-shadow: 0 6px 24px rgba(128, 80, 98, 0.15);
+}
+
+.dream-done-rule {
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-primary) 35%, transparent),
+    transparent
+  );
+}
+
+.place-search-suggestions {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+}
+
+.place-search-suggestions button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.place-search-suggestions button:last-child {
+  border-bottom: none;
+}
+
+.place-search-suggestions button:hover,
+.place-search-suggestions button:focus {
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  padding-top: calc(1rem + var(--safe-top));
+}
+
+.image-lightbox[hidden] {
+  display: none !important;
+}
+
+.image-lightbox__close {
+  position: absolute;
+  top: calc(0.75rem + var(--safe-top));
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.image-lightbox__inner {
+  max-width: min(100%, 28rem);
+  max-height: min(85vh, 100%);
+}
+
+.image-lightbox__img {
+  display: block;
+  max-width: 100%;
+  max-height: min(85vh, 100%);
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 0.75rem;
+  object-fit: contain;
+}
+
+.mood-emoji-input {
+  width: 4.25rem;
+  height: 4.25rem;
+  min-width: 4.25rem;
+  padding: 0.125rem;
+  line-height: 1.15;
+  font-size: 2.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.btn-tactile {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.btn-tactile:active:not(:disabled) {
+  transform: scale(0.98);
+  filter: brightness(1.06);
+}
+
+.btn-tactile:disabled {
+  opacity: 0.65;
+}
+
+.btn-tactile.is-flash-success {
+  animation: btn-flash-success 0.45s ease;
+}
+
+@keyframes btn-flash-success {
+  0% {
+    filter: brightness(1);
+  }
+  40% {
+    filter: brightness(1.2);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 35%, transparent);
+  }
+  100% {
+    filter: brightness(1);
+    box-shadow: none;
+  }
+}
+
+.anniv-countdown-card--grid {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.anniv-countdown-card--grid .anniv-countdown-card__thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 5rem;
+  align-self: stretch;
+}
+
+.anniv-countdown-card--grid .anniv-countdown-card__body {
+  gap: 0.35rem;
+}
+
+.anniv-countdown-card--grid .anniv-countdown-card__countdown {
+  width: 100%;
+  justify-content: center;
+}
+
+.wins-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.wins-timeline__item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.wins-timeline__rail {
+  width: 1.25rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wins-timeline__dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  margin-top: 1.35rem;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-primary) 22%, transparent),
+    0 2px 8px rgba(128, 80, 98, 0.25);
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.wins-timeline__rail::after {
+  content: "";
+  flex: 1;
+  width: 2px;
+  min-height: 0.75rem;
+  margin-top: 2px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary) 45%, transparent),
+    color-mix(in srgb, var(--color-primary) 12%, transparent)
+  );
+  border-radius: 1px;
+}
+
+.wins-timeline__item:last-child .wins-timeline__rail::after {
+  display: none;
+}
+
+.wins-timeline__card {
+  flex: 1;
+  margin-bottom: 0.85rem;
+}
+
+.dreams-view {
+  position: relative;
+  overflow: hidden;
+}
+
+.dreams-galaxy-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 95% 55% at 50% 0%, rgba(255, 252, 255, 0.92) 0%, transparent 55%),
+    radial-gradient(circle at 12% 35%, rgba(113, 84, 120, 0.14) 0%, transparent 28%),
+    radial-gradient(circle at 88% 45%, rgba(128, 80, 98, 0.12) 0%, transparent 26%),
+    radial-gradient(circle at 48% 95%, rgba(45, 35, 90, 0.08) 0%, transparent 35%),
+    linear-gradient(165deg, #f3ecff 0%, #ebe6f7 45%, #e2eaf8 100%);
+}
+
+.dreams-galaxy-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(1.5px 1.5px at 10% 20%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 25% 65%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 40% 30%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 55% 75%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 70% 25%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 85% 60%, rgba(255, 255, 255, 0.75), transparent),
+    radial-gradient(1.5px 1.5px at 92% 15%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 18% 88%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 65% 90%, rgba(255, 255, 255, 0.65), transparent);
+  animation: dreams-galaxy-drift 24s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dreams-galaxy-bg::before {
+    animation: none;
+  }
+}
+
+@keyframes dreams-galaxy-drift {
+  from {
+    transform: translate(0, 0);
+    opacity: 0.45;
+  }
+  to {
+    transform: translate(6px, -4px);
+    opacity: 0.58;
+  }
+}
+
+.dreams-galaxy-content {
+  position: relative;
+  z-index: 1;
+}
+
+.pin-reaching-illustration {
+  color: var(--color-text-muted);
+}
+
+.pin-reaching-svg {
+  display: block;
+  width: 100%;
+  max-height: 6.5rem;
+}
+
+.pin-reaching-path {
+  animation: pin-reaching-dash 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-reaching-path {
+    animation: none;
+  }
+}
+
+@keyframes pin-reaching-dash {
+  0%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dashoffset: 8;
+  }
+}
+
+.pin-reaching-figure--left {
+  animation: pin-reaching-bob-left 2.6s ease-in-out infinite;
+}
+
+.pin-reaching-figure--right {
+  animation: pin-reaching-bob-right 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-reaching-figure--left,
+  .pin-reaching-figure--right {
+    animation: none;
+  }
+}
+
+@keyframes pin-reaching-bob-left {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(3px, -2px);
+  }
+}
+
+@keyframes pin-reaching-bob-right {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-3px, -2px);
+  }
+}
