@@ -171,6 +171,12 @@
   async function bootstrap() {
     const params = new URLSearchParams(window.location.search);
     const qt = params.get("token");
+    if (api.mixedContentBlocked && api.mixedContentBlocked()) {
+      showGate(
+        "HTTPS site ↔ HTTP API cannot work (blocked by browsers). Terminate HTTPS in front of your backend (Coolify certs, nginx/Caddy Let’s Encrypt, Cloudflare Tunnel, etc.) or move the SPA to plain HTTP alongside the API.",
+      );
+      return;
+    }
     try {
       if (qt) {
         const json = await api.loginWithQueryToken(qt);

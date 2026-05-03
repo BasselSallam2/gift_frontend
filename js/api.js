@@ -90,6 +90,23 @@
     return json;
   }
 
+  /** True when API_BASE is http:// while the site is HTTPS (GitHub Pages) — browsers block those requests. */
+  function mixedContentBlocked() {
+    try {
+      if (typeof global.location === "undefined") return false;
+      if (!global.isSecureContext) return false;
+      return /^http:\/\//i.test(String(C.API_BASE || "").trim());
+    } catch {
+      return false;
+    }
+  }
+
+  if (mixedContentBlocked()) {
+    console.warn(
+      "[Gifts] API_BASE uses http:// on an HTTPS site (e.g. GitHub Pages). Browsers block mixed content — use an HTTPS URL for API_BASE, or TLS in front of your backend (Cloudflare tunnel/proxy, Caddy/Let's Encrypt, etc.). See docs/js/config.js comments.",
+    );
+  }
+
   function streamUrlFromStorageKey(key) {
     if (!key) return "";
     const k = String(key).replace(/^uploads\//, "");
@@ -124,5 +141,6 @@
     unwrapData,
     streamUrlFromStorageKey,
     uploadFile,
+    mixedContentBlocked,
   };
 })(typeof window !== "undefined" ? window : globalThis);
