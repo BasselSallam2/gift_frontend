@@ -1,0 +1,26 @@
+server {
+    listen 80 default_server;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    client_max_body_size 20m;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json;
+
+    # No /api proxy: set GIFTS_API_BASE (in js/config) to the full backend URL, e.g. https://your-api.sslip.io/api
+
+    location = /js/config.js {
+        add_header Cache-Control "no-store";
+    }
+
+    location / {
+        try_files $uri /index.html;
+    }
+
+    location ~* \.(css|js)$ {
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+    }
+}
