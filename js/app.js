@@ -10,6 +10,9 @@
   let lovePartnerToday = null;
   let loveMineToday = null;
   let dreamCompleteTargetId = null;
+  /** First-time shell init (tabs, home load) waits until optional app-lock is cleared. */
+  let giftsShellBootstrapped = false;
+  let giftsDeferredShell = false;
   const LS_ANNIV = "gifts.v1.anniversaryRows";
   const LS_GALLERY = "gifts.v1.galleryRows";
   const LS_MOOD = "gifts.v1.moodRows";
@@ -169,6 +172,107 @@
     if (data && data.user && data.user.token) api.setToken(data.user.token);
     window.applyThemeFromCouple(data && data.couple);
     syncHeaderPartnerName();
+    if (data && data.user && !data.user.hasPassword) {
+      hideAppPasswordShield();
+      stopAppPasswordLockTicker();
+    }
+  }
+
+  const APP_LOCK_MS = 5 * 60 * 1000;
+  let appPasswordLockTicker = null;
+
+  function appUnlockStorageKey() {
+    try {
+      const tok = api.getToken() || "";
+      return "gifts_app_unlock:" + tok.slice(0, 48);
+    } catch (_) {
+      return "gifts_app_unlock:";
+    }
+  }
+
+  function readUnlockDeadline() {
+    try {
+      const n = parseInt(sessionStorage.getItem(appUnlockStorageKey()) || "", 10);
+      return Number.isFinite(n) ? n : 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /** After successful password check, stay open this long before we ask again. */
+  function bumpAppUnlockDeadline() {
+    try {
+      sessionStorage.setItem(appUnlockStorageKey(), String(Date.now() + APP_LOCK_MS));
+    } catch (_) {}
+    var errEl = document.getElementById("app-password-error");
+    if (errEl) errEl.textContent = "";
+  }
+
+  function needsAppUnlockPrompt() {
+    if (!session || !session.user || !session.user.hasPassword) return false;
+    return Date.now() >= readUnlockDeadline();
+  }
+
+  function hideAppPasswordShield() {
+    var el = document.getElementById("app-password-shield");
+    if (el) el.hidden = true;
+  }
+
+  function showAppPasswordShield(message) {
+    var el = document.getElementById("app-password-shield");
+    if (!el) return;
+    el.hidden = false;
+    var msgEl = document.getElementById("app-password-msg");
+    if (msgEl) {
+      msgEl.textContent =
+        message != null && String(message).trim()
+          ? String(message)
+          : "Enter the app password you chose in Settings.";
+    }
+    var errEl = document.getElementById("app-password-error");
+    if (errEl) errEl.textContent = "";
+    var inp = document.getElementById("input-app-password");
+    if (inp) {
+      inp.value = "";
+      setTimeout(function () {
+        inp.focus();
+      }, 60);
+    }
+  }
+
+  function stopAppPasswordLockTicker() {
+    if (appPasswordLockTicker) clearInterval(appPasswordLockTicker);
+    appPasswordLockTicker = null;
+  }
+
+  function startAppPasswordLockTicker() {
+    stopAppPasswordLockTicker();
+    if (!session || !session.user || !session.user.hasPassword) return;
+    appPasswordLockTicker = setInterval(function () {
+      var gate = document.getElementById("gate");
+      if (gate && !gate.hidden) return;
+      var root = document.getElementById("app-root");
+      if (!root || root.hidden) return;
+      if (needsAppUnlockPrompt())
+        showAppPasswordShield(
+          "It has been a few minutes — enter your app password again before using your space.",
+        );
+    }, 8000);
+  }
+
+  function syncAppLockAfterLoginOrRefresh() {
+    if (!session || !session.user || !session.user.hasPassword) {
+      hideAppPasswordShield();
+      stopAppPasswordLockTicker();
+      return;
+    }
+    startAppPasswordLockTicker();
+    if (needsAppUnlockPrompt()) showAppPasswordShield("");
+  }
+
+  function finalizeSessionAfterAuth() {
+    showApp();
+    syncAppLockAfterLoginOrRefresh();
   }
 
   async function bootstrap() {
@@ -188,14 +292,14 @@
         setSessionFromPayload(data);
         const clean = window.location.pathname + window.location.hash;
         window.history.replaceState({}, "", clean);
-        showApp();
+        finalizeSessionAfterAuth();
         return;
       }
       if (api.getToken()) {
         const json = await api.me();
         const data = api.unwrapData(json);
         setSessionFromPayload(data);
-        showApp();
+        finalizeSessionAfterAuth();
         return;
       }
     } catch (e) {
@@ -1799,6 +1903,44 @@
     });
   }
 
+  function populateAppLockSettingsUi() {
+    const st = document.getElementById("settings-app-lock-status");
+    if (st) {
+      if (session && session.user && session.user.hasPassword)
+        st.textContent = "App lock is on — we’ll ask for your password on this device.";
+      else st.textContent = "App lock is off (optional).";
+    }
+    const rm = document.getElementById("chk-remove-app-lock");
+    if (rm) rm.checked = false;
+    const nw = document.getElementById("input-app-lock-new");
+    const cf = document.getElementById("input-app-lock-confirm");
+    const cur = document.getElementById("input-app-lock-current");
+    if (nw) nw.value = "";
+    if (cf) cf.value = "";
+    if (cur) cur.value = "";
+  }
+
+  async function submitAppUnlockForm() {
+    const inp = document.getElementById("input-app-password");
+    const pwd = inp && inp.value.trim();
+    const errEl = document.getElementById("app-password-error");
+    if (!pwd) {
+      if (errEl) errEl.textContent = "Enter your app password.";
+      return;
+    }
+    try {
+      await api.verifyAppPassword(pwd);
+      bumpAppUnlockDeadline();
+      hideAppPasswordShield();
+      if (giftsDeferredShell) {
+        giftsDeferredShell = false;
+        runGiftsShellBootstrap();
+      }
+    } catch (e) {
+      if (errEl) errEl.textContent = e && e.message ? e.message : "Wrong password.";
+    }
+  }
+
   document.getElementById("btn-save-name").addEventListener("click", async function () {
     const name = document.getElementById("input-settings-name").value.trim();
     if (!name) return toast("Name required");
@@ -1806,10 +1948,67 @@
     try {
       const json = await api.updateMe(name);
       setSessionFromPayload(api.unwrapData(json));
+      populateAppLockSettingsUi();
       flashSuccessBtn(btn);
       toast("Name saved");
     } catch (e) {
       toast(e.message);
+    }
+  });
+
+  document.getElementById("btn-save-app-lock").addEventListener("click", async function () {
+    if (!session || !session.user) return toast("Sign in first.");
+    const nameInp = document.getElementById("input-settings-name");
+    const displayName =
+      (nameInp && nameInp.value.trim()) || (session.user.name && String(session.user.name).trim()) || "";
+    if (!displayName) return toast("Fill in your name in Settings first.");
+
+    const removeLock = document.getElementById("chk-remove-app-lock").checked;
+    const newPw = document.getElementById("input-app-lock-new").value.trim();
+    const confirmPw = document.getElementById("input-app-lock-confirm").value.trim();
+    const curPw = document.getElementById("input-app-lock-current").value.trim();
+    const body = { name: displayName };
+    const btn = this;
+
+    if (removeLock) {
+      if (!session.user.hasPassword) return toast("App lock is not enabled.");
+      if (!curPw) return toast("Enter your current password to remove app lock.");
+      body.removeAppPassword = true;
+      body.currentAppPassword = curPw;
+    } else if (newPw || confirmPw) {
+      if (newPw.length < 6) return toast("New app password must be at least 6 characters.");
+      if (newPw !== confirmPw) return toast("New password and confirmation must match.");
+      body.newAppPassword = newPw;
+      body.confirmAppPassword = confirmPw;
+      if (session.user.hasPassword) {
+        if (!curPw) return toast("Enter your current password to change app lock.");
+        body.currentAppPassword = curPw;
+      }
+    } else {
+      return toast("Enter a new password (and confirm), or tick Remove app lock.");
+    }
+
+    try {
+      const json = await api.updateMe(body);
+      setSessionFromPayload(api.unwrapData(json));
+      bumpAppUnlockDeadline();
+      hideAppPasswordShield();
+      populateAppLockSettingsUi();
+      syncAppLockAfterLoginOrRefresh();
+      flashSuccessBtn(btn);
+      toast("App lock settings saved");
+    } catch (e) {
+      toast(e && e.message ? e.message : "Could not save");
+    }
+  });
+
+  document.getElementById("btn-app-password-unlock").addEventListener("click", function () {
+    submitAppUnlockForm();
+  });
+  document.getElementById("input-app-password").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      submitAppUnlockForm();
     }
   });
 
@@ -1854,8 +2053,18 @@
     if (t === "settings") {
       renderHomeHeader();
       document.getElementById("input-settings-name").value = (session && session.user && session.user.name) || "";
+      populateAppLockSettingsUi();
       buildThemeFields();
     }
+  });
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState !== "visible") return;
+    const gate = document.getElementById("gate");
+    if (gate && !gate.hidden) return;
+    const root = document.getElementById("app-root");
+    if (!root || root.hidden) return;
+    if (needsAppUnlockPrompt()) showAppPasswordShield("");
   });
 
   router.initRouter();
@@ -1865,7 +2074,9 @@
     renderPartnerMoodPreview();
   }, 5000);
 
-  bootstrap().then(function () {
+  function runGiftsShellBootstrap() {
+    if (giftsShellBootstrapped) return;
+    giftsShellBootstrapped = true;
     if (document.getElementById("app-root").hidden) return;
     if (window.GiftsPlaces && typeof window.GiftsPlaces.init === "function") {
       window.GiftsPlaces.init({
@@ -1883,5 +2094,14 @@
       loadMoodPreview();
       loadDailyShortcut();
     }
+  }
+
+  bootstrap().then(function () {
+    if (document.getElementById("app-root").hidden) return;
+    if (needsAppUnlockPrompt()) {
+      giftsDeferredShell = true;
+      return;
+    }
+    runGiftsShellBootstrap();
   });
 })();

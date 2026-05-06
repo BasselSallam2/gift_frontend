@@ -45,18 +45,39 @@
     return json;
   }
 
-  async function updateMe(name) {
+  async function updateMe(nameOrBody) {
+    const body =
+      typeof nameOrBody === "string"
+        ? { name: String(nameOrBody || "").trim() }
+        : Object.assign({}, nameOrBody);
+    if (!body.name || !String(body.name).trim()) throw new Error("Name required");
+    body.name = String(body.name).trim();
     const res = await fetch(C.API_BASE + "/user/me", {
       method: "PUT",
       headers: {
         Authorization: "Bearer " + getToken(),
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(body),
       credentials: "omit",
     });
     const json = await parseJson(res);
     if (!res.ok) throw new Error(json.message || "Update failed");
+    return json;
+  }
+
+  async function verifyAppPassword(password) {
+    const res = await fetch(C.API_BASE + "/user/me/verify-app-password", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + getToken(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ password: String(password || "") }),
+      credentials: "omit",
+    });
+    const json = await parseJson(res);
+    if (!res.ok) throw new Error(json.message || "Wrong password");
     return json;
   }
 
@@ -144,5 +165,6 @@
     streamUrlFromStorageKey,
     uploadFile,
     mixedContentBlocked,
+    verifyAppPassword,
   };
 })(typeof window !== "undefined" ? window : globalThis);
