@@ -89,14 +89,10 @@
     return api.streamUrlFromStorageKey(s);
   }
 
-  /** Prefer `<img src>`; if blocked, retry via fetch + blob (Helmet/CORP dev quirks). */
+  /** `<img src>` without crossOrigin — object storage often has no CORS; anonymous would block display. */
   function bindSmartImage(img, url) {
     const src = imageDisplayUrl(url);
-    if (/^blob:/i.test(src) || /^data:/i.test(src)) {
-      img.removeAttribute("crossorigin");
-    } else {
-      img.crossOrigin = "anonymous";
-    }
+    img.removeAttribute("crossorigin");
     img.referrerPolicy = "no-referrer";
     let blobTried = false;
     img.onerror = function () {
