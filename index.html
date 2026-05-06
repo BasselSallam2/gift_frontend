@@ -48,19 +48,6 @@
   </div>
 
   <div id="app-root" class="w-full max-w-[430px] min-h-screen relative device-shell pb-4" hidden>
-    <!-- App lock overlay (shown when user set optional password and session expired locally) -->
-    <div id="app-password-shield" class="absolute inset-0 z-[120] flex flex-col items-center justify-center px-5 bg-[var(--color-background)]/98 backdrop-blur-sm overflow-y-auto" hidden>
-      <div class="rounded-[24px] bg-surface p-8 shadow-xl max-w-sm w-full border border-black/10 text-center my-auto">
-        <span class="material-symbols-outlined text-5xl text-primary mb-4 block">lock</span>
-        <h2 class="font-display text-xl font-bold mb-2 text-on-surface">App locked</h2>
-        <p id="app-password-msg" class="text-sm text-on-surface-variant mb-4"></p>
-        <label class="sr-only" for="input-app-password">App password</label>
-        <input id="input-app-password" type="password" autocomplete="current-password" class="w-full rounded-full border px-4 py-2.5 text-sm mb-2" placeholder="App password"/>
-        <p id="app-password-error" class="text-xs text-[var(--color-unread)] mb-3 min-h-[1.125rem]" aria-live="polite"></p>
-        <button type="button" id="btn-app-password-unlock" class="btn-tactile w-full rounded-full bg-primary text-white py-2.5 text-sm font-semibold">Unlock</button>
-        <p class="text-[11px] text-on-surface-variant mt-4 leading-relaxed">For privacy we ask again about every <strong class="font-semibold text-on-surface">5 minutes</strong> if this tab stays open.</p>
-      </div>
-    </div>
     <!-- Top bar -->
     <header class="sticky top-0 z-20 flex items-center justify-between px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-b border-black/5 shadow-sm">
       <div class="flex items-center gap-3 min-w-0">
@@ -380,6 +367,20 @@
         </button>
       </div>
     </nav>
+
+    <!-- App lock: last in app-root + fixed so it sits above nav and always receives taps -->
+    <div id="app-password-shield" class="fixed inset-0 z-[200] flex flex-col items-center justify-center px-5 bg-[var(--color-background)]/98 backdrop-blur-sm overflow-y-auto pointer-events-auto" hidden>
+      <div class="rounded-[24px] bg-surface p-8 shadow-xl max-w-sm w-full border border-black/10 text-center my-auto pointer-events-auto relative z-10">
+        <span class="material-symbols-outlined text-5xl text-primary mb-4 block">lock</span>
+        <h2 class="font-display text-xl font-bold mb-2 text-on-surface">App locked</h2>
+        <p id="app-password-msg" class="text-sm text-on-surface-variant mb-4"></p>
+        <label class="sr-only" for="input-app-password">App password</label>
+        <input id="input-app-password" type="password" autocomplete="current-password" class="w-full rounded-full border px-4 py-2.5 text-sm mb-2" placeholder="App password"/>
+        <p id="app-password-error" class="text-xs text-[var(--color-unread)] mb-3 min-h-[1.125rem]" aria-live="polite"></p>
+        <button type="button" id="btn-app-password-unlock" class="btn-tactile w-full rounded-full bg-primary text-white py-2.5 text-sm font-semibold">Unlock</button>
+        <p class="text-[11px] text-on-surface-variant mt-4 leading-relaxed">For privacy we ask again about every <strong class="font-semibold text-on-surface">5 minutes</strong> if this tab stays open.</p>
+      </div>
+    </div>
   </div>
 
     <div id="mood-history-sheet" class="place-add-sheet" hidden role="dialog" aria-modal="true" aria-label="Mood history">

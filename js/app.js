@@ -172,7 +172,7 @@
     if (data && data.user && data.user.token) api.setToken(data.user.token);
     window.applyThemeFromCouple(data && data.couple);
     syncHeaderPartnerName();
-    if (data && data.user && !data.user.hasPassword) {
+    if (!data || !data.user || data.user.hasPassword !== true) {
       hideAppPasswordShield();
       stopAppPasswordLockTicker();
     }
@@ -180,6 +180,10 @@
 
   const APP_LOCK_MS = 5 * 60 * 1000;
   let appPasswordLockTicker = null;
+
+  function userHasAppLock() {
+    return !!(session && session.user && session.user.hasPassword === true);
+  }
 
   function appUnlockStorageKey() {
     try {
@@ -209,7 +213,7 @@
   }
 
   function needsAppUnlockPrompt() {
-    if (!session || !session.user || !session.user.hasPassword) return false;
+    if (!userHasAppLock()) return false;
     return Date.now() >= readUnlockDeadline();
   }
 
@@ -247,7 +251,7 @@
 
   function startAppPasswordLockTicker() {
     stopAppPasswordLockTicker();
-    if (!session || !session.user || !session.user.hasPassword) return;
+    if (!userHasAppLock()) return;
     appPasswordLockTicker = setInterval(function () {
       var gate = document.getElementById("gate");
       if (gate && !gate.hidden) return;
@@ -261,7 +265,7 @@
   }
 
   function syncAppLockAfterLoginOrRefresh() {
-    if (!session || !session.user || !session.user.hasPassword) {
+    if (!userHasAppLock()) {
       hideAppPasswordShield();
       stopAppPasswordLockTicker();
       return;
@@ -1906,7 +1910,7 @@
   function populateAppLockSettingsUi() {
     const st = document.getElementById("settings-app-lock-status");
     if (st) {
-      if (session && session.user && session.user.hasPassword)
+      if (session && session.user && session.user.hasPassword === true)
         st.textContent = "App lock is on — we’ll ask for your password on this device.";
       else st.textContent = "App lock is off (optional).";
     }
@@ -1921,6 +1925,10 @@
   }
 
   async function submitAppUnlockForm() {
+    if (typeof api.verifyAppPassword !== "function") {
+      toast("Frontend error: reload the page.");
+      return;
+    }
     const inp = document.getElementById("input-app-password");
     const pwd = inp && inp.value.trim();
     const errEl = document.getElementById("app-password-error");
@@ -1971,7 +1979,7 @@
     const btn = this;
 
     if (removeLock) {
-      if (!session.user.hasPassword) return toast("App lock is not enabled.");
+      if (session.user.hasPassword !== true) return toast("App lock is not enabled.");
       if (!curPw) return toast("Enter your current password to remove app lock.");
       body.removeAppPassword = true;
       body.currentAppPassword = curPw;
@@ -1980,7 +1988,7 @@
       if (newPw !== confirmPw) return toast("New password and confirmation must match.");
       body.newAppPassword = newPw;
       body.confirmAppPassword = confirmPw;
-      if (session.user.hasPassword) {
+      if (session.user.hasPassword === true) {
         if (!curPw) return toast("Enter your current password to change app lock.");
         body.currentAppPassword = curPw;
       }
@@ -2002,15 +2010,19 @@
     }
   });
 
-  document.getElementById("btn-app-password-unlock").addEventListener("click", function () {
-    submitAppUnlockForm();
-  });
-  document.getElementById("input-app-password").addEventListener("keydown", function (ev) {
-    if (ev.key === "Enter") {
-      ev.preventDefault();
+  var btnUnlockPw = document.getElementById("btn-app-password-unlock");
+  if (btnUnlockPw)
+    btnUnlockPw.addEventListener("click", function () {
       submitAppUnlockForm();
-    }
-  });
+    });
+  var inpUnlockPw = document.getElementById("input-app-password");
+  if (inpUnlockPw)
+    inpUnlockPw.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        submitAppUnlockForm();
+      }
+    });
 
   document.getElementById("btn-save-theme").addEventListener("click", async function () {
     if (!coupleId()) return toast("Pair first");

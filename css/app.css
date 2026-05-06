@@ -41,6 +41,10 @@ body {
   display: none !important;
 }
 
+#app-password-shield[hidden] {
+  display: none !important;
+}
+
 .tab-panel[hidden] {
   display: none !important;
 }

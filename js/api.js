@@ -67,6 +67,9 @@
   }
 
   async function verifyAppPassword(password) {
+    if (!C || typeof C.API_BASE !== "string" || !String(C.API_BASE).trim()) {
+      throw new Error("Missing API_BASE in config");
+    }
     const res = await fetch(C.API_BASE + "/user/me/verify-app-password", {
       method: "POST",
       headers: {
